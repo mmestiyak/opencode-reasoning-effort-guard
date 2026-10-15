@@ -1,0 +1,33 @@
+{
+  "name": "opencode-reasoning-effort-guard",
+  "version": "0.1.0",
+  "description": "Keep OpenCode from sending a reasoning effort the provider rejects.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "reasoning",
+    "reasoning-effort"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.0.30"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.12"
+  }
+}
