@@ -1,5 +1,8 @@
 # opencode-reasoning-effort-guard
 
+[![npm version](https://img.shields.io/npm/v/opencode-reasoning-effort-guard)](https://www.npmjs.com/package/opencode-reasoning-effort-guard)
+[![license](https://img.shields.io/npm/l/opencode-reasoning-effort-guard)](LICENSE)
+
 Stop OpenCode sending a reasoning effort the provider rejects.
 
 ## The problem
@@ -16,18 +19,26 @@ River is a good example. Its `deepseek-ai/DeepSeek-V4.1-Flash` accepts `none`, `
 ## Install
 
 ```sh
-opencode plugin add github:mmestiyak/opencode-reasoning-effort-guard
-```
-
-Or once it is on npm:
-
-```sh
 opencode plugin add opencode-reasoning-effort-guard
 ```
 
+Directly from the repository instead:
+
+```sh
+opencode plugin add github:mmestiyak/opencode-reasoning-effort-guard
+```
+
+Confirm what OpenCode loaded:
+
+```sh
+opencode plugin list
+```
+
+Installing only records the package. The guard does nothing until you give it the effort values your models accept, which is the next section.
+
 ## Configure
 
-Give each model the effort values it accepts, in `opencode.json(c)`:
+Add a `plugins` entry to `opencode.json(c)` with the models you want covered. The keys are the same provider and model ids you already use in the `providers` block:
 
 ```jsonc
 {
@@ -37,15 +48,18 @@ Give each model the effort values it accepts, in `opencode.json(c)`:
       "package": "opencode-reasoning-effort-guard",
       "options": {
         "models": {
-          "river/deepseek-v4.1-flash": ["none", "high", "max"],
-          "river/glm-5.3-flash": ["low", "high", "max"],
+          "river/deepseek-ai/DeepSeek-V4.1-Flash": ["none", "high", "max"],
+          "river/zai-org/GLM-5.3-Flash": ["low", "high", "max"],
           "river/*": ["none", "high"]
-        }
+        },
+        "onUnsupported": "warn"
       }
     }
   ]
 }
 ```
+
+`opencode plugin add` writes the package name as a plain string. Change that entry to the object form above so the rules reach the plugin. A plugin with no `options` has no rules and is a no-op.
 
 ## What it does
 
@@ -75,6 +89,12 @@ The guard only changes the value on the wire. It does not edit your configuratio
 
 An exact `"provider/model"` entry wins over `"provider/*"`. Malformed entries are ignored rather than throwing, so a typo cannot stop OpenCode from starting.
 
+With `"warn"`, a corrected call logs one line:
+
+```
+[reasoning-effort-guard] river/deepseek-ai/DeepSeek-V4.1-Flash: "medium" is not supported, using "high"
+```
+
 ## How it works
 
 It registers a `context` session hook, scoped to each configured provider, that runs immediately before a request is dispatched.
@@ -82,6 +102,27 @@ It registers a `context` session hook, scoped to each configured provider, that 
 The requested level is read from `event.options.reasoningEffort` if a request override set it, otherwise from `event.model.variant`. The variant matters: when OpenCode synthesizes `low`/`medium`/`high` for an uncatalogued model, the chosen level arrives as `event.model.variant` and its setting is applied as a model default, so it never appears in `event.options`. The guard writes the corrected value to `event.options.reasoningEffort`, and a request override takes precedence over a model default, so the corrected value is what the provider receives.
 
 All the decision logic lives in `src/guard.ts` with no OpenCode imports, so it can be read and tested on its own.
+
+## Troubleshooting
+
+### `Plugin package has no server or TUI entrypoint`
+
+Clear the cached copy and install again:
+
+```sh
+rm -rf ~/.cache/opencode/npm/opencode-reasoning-effort-guard@latest
+opencode plugin add opencode-reasoning-effort-guard
+```
+
+OpenCode resolves the plugin entrypoint from the copy it unpacks into `~/.cache/opencode/npm/`. If that copy is an incomplete or placeholder package, the entrypoint lookup fails with this message even though the published package is fine. Clearing the cache forces a fresh download. We hit this once, while npm was still serving its staged `0.0.0-stage` placeholder.
+
+### The guard is installed but never fires
+
+Check that the `plugins` entry carries `options.models` with the exact `"provider/model"` ids for your setup. A plugin installed as a bare string, or with an empty `models` map, has no rules to apply. Set `onUnsupported` to `"warn"` and the guard logs a line whenever it corrects a value, which makes it obvious whether it is loading and matching.
+
+### The guard clamps a value you expected to keep
+
+The value you asked for is not in that model's accepted list. Check the `models` entry, then confirm what the provider actually accepts. Providers often document a wider set than the endpoint enforces.
 
 ## Local development
 
@@ -97,7 +138,7 @@ export default {
     return guard.setup({
       ...ctx,
       options: {
-        models: { "river/deepseek-v4.1-flash": ["none", "high", "max"] },
+        models: { "river/deepseek-ai/DeepSeek-V4.1-Flash": ["none", "high", "max"] },
         onUnsupported: "warn",
       },
     })
