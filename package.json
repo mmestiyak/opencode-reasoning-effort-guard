@@ -18,6 +18,13 @@
     "reasoning-effort"
   ],
   "license": "MIT",
+  "author": "Meer Estiyak",
+  "homepage": "https://github.com/mmestiyak/opencode-reasoning-effort-guard#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mmestiyak/opencode-reasoning-effort-guard.git"
+  },
+  "bugs": "https://github.com/mmestiyak/opencode-reasoning-effort-guard/issues",
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
